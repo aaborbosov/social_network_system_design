@@ -1,0 +1,972 @@
+openapi: 3.0.0
+info:
+  title: Travel Social Network API
+  description: API для социальной сети путешественников
+  version: 1.0.0
+servers:
+  - url: https://api.travelsocial.com/v1
+    description: Production server
+  - url: https://qa.api.travelsocial.com/v1
+    description: QA server
+
+paths:
+  /me:
+    get:
+      summary: Получение информации о текущем пользователе
+      tags:
+        - Users
+      description: Возвращает профиль текущего аутентификатора пользователя
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserProfile'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+  /users/{user_id}:
+    get:
+      summary: Получение информации о пользователе
+      tags:
+        - Users
+      description: Возвращает профиль пользователя с флагом подписки текущего пользователя
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+  /posts:
+    get:
+      summary: Получение ленты постов
+      tags:
+        - Posts
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: 
+              - subscriptions
+              - interesting
+          description: Тип ленты (подписки или интересное)
+        - name: user_id
+          in: query
+          schema:
+            type: string
+          description: Лента постов определенного пользователя. Если указано, то type игнорируется
+        - name: place_id
+          in: query
+          schema:
+            type: string
+          description: Лента постов по конкретному месту. Если указано, то type игнорируется.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostsList'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    post:
+      summary: Создание нового поста
+      tags:
+        - Posts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+      responses:
+        '201':
+          description: Пост создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostCreateResponse'
+        '400':
+          $ref: '#/components/ErrorResponces/ValidationError'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '429':
+          $ref: '#/components/ErrorResponces/RateLimitPosts'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    
+  /posts/{post_id}:
+    get:
+      tags:
+        - Posts
+      summary: Получение поста по ID
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+
+    put:
+      tags:
+        - Posts
+      summary: Редактирование поста
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+      responses:
+        '200':
+          description: Пост обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          $ref: '#/components/ErrorResponces/ValidationError'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '403':
+          $ref: '#/components/ErrorResponces/Forbidden'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    delete:
+      tags:
+        - Posts
+      summary: Удаление поста
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Пост удален
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '403':
+          $ref: '#/components/ErrorResponces/Forbidden'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+
+  /posts/{post_id}/reactions:
+    put:
+      summary: Установка/обновление реакции
+      tags:
+        - Reactions
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionRequest'
+      responses:
+        '200':
+          description: Реакция установлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactionRequest'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    delete:
+      summary: Снятие реакции
+      tags:
+        - Reactions
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Реакция удалена
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+
+  /posts/{post_id}/comments:
+    get:
+      summary: Получение комментариев к посту
+      tags:
+        - Comments
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации
+        # - name: limit
+        #   in: query
+        #   schema:
+        #     type: integer
+        #     default: 30
+        # - name: offset
+        #   in: query
+        #   schema:
+        #     type: integer
+        #     default: 0
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsList'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    post:
+      summary: Добавление комментария
+      tags:
+        - Comments
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+      responses:
+        '201':
+          description: Комментарий добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+
+  /comments/{comment_id}:
+    delete:
+      tags:
+        - Comments
+      summary: Удаление комментария
+      parameters:
+        - name: comment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Комментарий удален
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+
+  /subscriptions:
+    get:
+      summary: Получить список подписок пользователя
+      tags:
+        - Subscriptions
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionsList'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    post:
+      summary: Подписаться на пользователя
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '201':
+          description: Подписка оформлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    delete:
+      summary: Отписаться от пользователя
+      tags:
+        - Subscriptions
+      parameters:
+        - name: author_id
+          in: query
+          required: true
+          schema:
+            type: string
+            description: Идентификатор автора, подписку на которого нужно удалить
+      responses:
+        '204':
+          description: Подписка удалена
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '403':
+          $ref: '#/components/ErrorResponces/Forbidden'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    
+  /subscribers:
+    get:
+      summary: Получить список подписчиков пользователя
+      tags:
+        - Subscriptions
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Курсор для пагинации
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionsList'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+    delete:
+      summary: Удалить подписчика
+      tags:
+        - Subscriptions
+      parameters:
+        - name: subscriber_id
+          in: query
+          required: true
+          schema:
+            type: string
+            description: Идентификатор подписчика, которого нужно удалить 
+      responses:
+        '204':
+          description: Подписка удалена
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '404':
+          $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
+        '403':
+          $ref: '#/components/ErrorResponces/Forbidden'
+
+  /search/places:
+    get:
+      summary: Поиск по геолокации
+      tags:
+        - Search
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Название места
+      responses:
+        '200':
+          description: Список подходящих мест
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlacesList'
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+
+  /uploads/image:
+    post:
+      summary: Загрузка изображения
+      tags:
+        - Uploads
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: "Изображение до 2 МБ. <br>Форматы: JPG, JPEG, PNG, WebP"
+      responses:
+        '200':
+          description: Изображение загружено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  image_url:
+                    type: string
+                    description: URL загруженного изображения   
+        '401':
+          $ref: '#/components/ErrorResponces/Unauthorized'
+        '400':
+          $ref: '#/components/ErrorResponces/ValidationError'   
+
+components:
+  schemas:
+    CurrentUserProfile:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UserId"
+        username:
+          $ref: "#/components/schemas/UserName"
+        avatar_url:
+          type: string
+          format: uri
+          description: URL аватара пользователя
+          example: https://example.com/avatars/user123.jpg
+        bio:
+          type: string
+          description: Краткое описание пользователя
+          maxLength: 500
+          example: Люблю путешествовать и фотографировать красивые места
+        created_at:
+          $ref: "#/components/schemas/CreatedAt"
+        updated_at:
+          $ref: "#/components/schemas/UpdatedAt"
+        posts_count:
+          type: integer
+          description: Общее количество постов пользователя
+          example: 42
+        subscriptions_count:
+          type: integer
+          description: Количество подписок пользователя
+          example: 128
+        subscribers_count:
+          type: integer
+          description: Количество подписчиков пользователя
+          example: 567
+    UserProfile:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UserId"
+        username:
+          $ref: "#/components/schemas/UserName"
+        avatar_url:
+          type: string
+          format: uri
+          description: URL аватара пользователя
+          example: https://example.com/avatars/user123.jpg
+        bio:
+          type: string
+          description: Краткое описание пользователя
+          maxLength: 500
+          example: Люблю путешествовать и фотографировать красивые места
+        created_at:
+          $ref: "#/components/schemas/CreatedAt"
+        updated_at:
+          $ref: "#/components/schemas/UpdatedAt"
+        posts_count:
+          type: integer
+          description: Общее количество постов пользователя
+          example: 42
+        subscriptions_count:
+          type: integer
+          description: Количество подписок пользователя
+          example: 128
+        subscribers_count:
+          type: integer
+          description: Количество подписчиков пользователя
+          example: 567
+        subscription:
+          type: boolean
+          description: Флаг подписки текущего пользователя на этого пользователя
+          example: true
+    PostsList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        next_cursor:
+          $ref: "#/components/schemas/NextCursor"
+    PostCreateRequest:
+      type: object
+      anyOf:
+      - required: [description]
+      - required: [image_url]
+      - required: [location]
+      minProperties: 1
+      properties:
+        description:
+          type: string
+          maxLength: 200
+        image_url:
+          type: string
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: double
+              minimum: -90
+              maximum: 90
+              description: Широта
+            lon:
+              type: number
+              format: double
+              minimum: -180
+              maximum: 180
+              description: Долгота
+    PostCreateResponse:
+      $ref: "#/components/schemas/Post"
+    ReactionRequest:
+      type: object
+      required:
+        - type_id
+      properties:
+        type_id: 
+          $ref: "#/components/schemas/ReactionType"
+    CommentsList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        next_cursor:
+          $ref: "#/components/schemas/NextCursor"
+    SubscriptionsList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+        next_cursor:
+          $ref: "#/components/schemas/NextCursor"
+    SubscribeRequest:
+      type: object
+      properties:
+        user_id:
+          $ref: "#/components/schemas/UserId"
+    CommentCreateRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          maximum: 500
+        reply_to_user_id:
+          type: string
+          description: ID пользователя, на чей комментарий отвечают
+    PlacesList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Place"
+        next_cursor:
+          $ref: "#/components/schemas/NextCursor"
+
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 412
+        author:
+          type: object
+          properties:
+            user_id:
+              $ref: "#/components/schemas/UserId"
+            user_name:
+              $ref: "#/components/schemas/UserName"
+            avatar_url:
+              type: string
+              format: uri
+              example: "https://i.pinimg.com/736x/93/d3/e3/93d3e31639a4d07613de9dccdc8bd5e8.jpg"
+        description:
+          type: string
+          maximum: 200
+          example: Сегодня наконец-то выбрался в Алупку. Замечательная погода.
+        location:
+          $ref: "#/components/schemas/Location"
+        image_url:
+          type: string
+          format: uri
+          description: Ссылка на изображение
+          example: https://avatars.mds.yandex.net/i?id=1abf030c1c0655129ea8fb420e9d9367_l-5278064-images-thumbs&n=13
+          maxLength: 255
+        comments_count:
+          type: integer
+          minimum: 0
+          example: 12
+          description: Количество комментариев к посту
+        current_user_reaction:
+          $ref: "#/components/schemas/ReactionType"
+        reactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostReactions"
+        created_at:
+          $ref: "#/components/schemas/CreatedAt"
+        updated_at:
+          $ref: "#/components/schemas/UpdatedAt"
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 1142
+          description: Идентификатор записи
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        reply_to_user_id:
+          type: string
+          description: ID пользователя, на чей комментарий отвечают
+        reply_to_user_name:
+          type: string
+          description: Имя пользователя, на чей комментарий отвечают
+        user_name:
+          $ref: "#/components/schemas/UserName"
+        text: 
+          type: string
+          maximum: 500
+          example: Научись фотографировать уже!
+        created_at: 
+          $ref: "#/components/schemas/CreatedAt"
+        updated_at: 
+          $ref: "#/components/schemas/UpdatedAt"
+    Subscription:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        user_id:
+          $ref: "#/components/schemas/UserId"
+        user_name:
+          $ref: "#/components/schemas/UserName"
+        created_at:
+          $ref: "#/components/schemas/CreatedAt"
+    Place:
+      type: object
+      properties:
+        id: 
+          $ref: "#/components/schemas/Id"
+        name: 
+          type: string
+          description: Название места
+          example: Петрозаводск, Республика Карелия
+    CreatedAt:
+      type: string
+      format: date-time
+      description: Дата и время создания
+    UpdatedAt:
+      type: string
+      format: date-time
+      description: Дата и время обновления
+    ReactionType:
+      type: integer
+      enum:
+        - 1 - Лайк
+        - 2 - Дизлайк
+        - 3 - Сердечко
+        - 4 - Огонь
+        - 5 - Плачу
+        - 6 - Клоун
+      minimum: 0
+      example: 1
+    PostReactions:
+      type: object
+      properties:
+        type_id: 
+          $ref: "#/components/schemas/ReactionType"
+        count:
+          type: integer
+          minimum: 0
+          example: 12
+          description: Количество реакций данного типа
+    Id:
+      type: string
+      example: 1142
+      description: Идентификатор записи
+    UserId:
+      type: string
+      example: 567
+      description: Идентификатор пользователя
+    UserName:
+      type: string
+      example: JuniorHTMLEngineer
+      description: Никнейм пользователя
+    NextCursor:
+      type: string
+      description: Курсор для следующей страницы
+    Location:
+      required:
+      - lat
+      - lon
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: Широта
+        lon:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: Долгота
+        name:
+          type: string
+          description: Название места
+          example: Петрозаводск, Республика Карелия
+
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Код ошибки
+          example: "NOT_FOUND"
+        message:
+          type: string
+          description: Понятное описание ошибки
+          example: "Entity not found"
+        details:
+          type: array
+          description: Детали ошибок валидации (опционально)
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Поле, в котором произошла ошибка
+          example: "description"
+        message:
+          type: string
+          description: Описание ошибки для конкретного поля
+          example: "Максимальная длина текста — 200 символов"
+
+  ErrorResponces:
+    Unauthorized:
+      description: Пользователь не авторизован
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Требуется авторизация"
+    Forbidden:
+      description: Доступ запрещён
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "FORBIDDEN"
+            message: "Недостаточно прав для выполнения операции"
+    ValidationError:
+      description: Ошибка валидации запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "VALIDATION_ERROR"
+            message: "Ошибка валидации запроса"
+            details:
+              - field: "description"
+                message: "Максимальная длина текста — 200 символов"
+    NotFound:
+      description: Запись не найдена
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "NOT_FOUND"
+            message: "Запись не найдена"
+    AlreadySubscribed:
+      description: Уже подписан на пользователя
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "ALREADY_SUBSCRIBED"
+            message: "Вы уже подписаны на этого пользователя"
+    SelfSubscription:
+      description: Попытка подписаться на себя
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "SELF_SUBSCRIPTION"
+            message: "Нельзя подписаться на самого себя"
+    ImageTooLarge:
+      description: Изображение превышает допустимый размер
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "IMAGE_TOO_LARGE"
+            message: "Размер изображения не должен превышать 2 МБ"
+    InvalidImageFormat:
+      description: Неподдерживаемый формат изображения
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "INVALID_IMAGE_FORMAT"
+            message: "Допустимые форматы: JPG, JPEG, PNG, WebP"
+    RateLimitPosts:
+      description: Превышен лимит публикации постов
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "RATE_LIMIT_POSTS"
+            message: "Превышен лимит: не более 50 постов в день"
+    RateLimitComments:
+      description: Превышен лимит комментариев
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "RATE_LIMIT_COMMENTS"
+            message: "Превышен лимит: не более 1 комментария в минуту"
+    InternalError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: "INTERNAL_ERROR"
+            message: "Внутренняя ошибка сервера"
+
+    # ...
