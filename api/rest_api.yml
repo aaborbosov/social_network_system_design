@@ -10,24 +10,7 @@ servers:
     description: QA server
 
 paths:
-  /me:
-    get:
-      summary: Получение информации о текущем пользователе
-      tags:
-        - Users
-      description: Возвращает профиль текущего аутентификатора пользователя
-      responses:
-        '200':
-          description: Информация о пользователе
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CurrentUserProfile'
-        '401':
-          $ref: '#/components/ErrorResponces/Unauthorized'
-        '500':
-          $ref: '#/components/ErrorResponces/InternalError'
-  /users/{user_id}:
+  /users:
     get:
       summary: Получение информации о пользователе
       tags:
@@ -35,10 +18,11 @@ paths:
       description: Возвращает профиль пользователя с флагом подписки текущего пользователя
       parameters:
         - name: user_id
-          in: path
-          required: true
+          in: query
+          required: false
           schema:
             type: string
+          description: Идентификатор пользователя. <br>Если не передан - возаращается информация о текущем пользователе
       responses:
         '200':
           description: Информация о пользователе
@@ -266,16 +250,6 @@ paths:
           schema:
             type: string
           description: Курсор для пагинации
-        # - name: limit
-        #   in: query
-        #   schema:
-        #     type: integer
-        #     default: 30
-        # - name: offset
-        #   in: query
-        #   schema:
-        #     type: integer
-        #     default: 0
       responses:
         '200':
           description: Успешный ответ
@@ -319,7 +293,7 @@ paths:
         '500':
           $ref: '#/components/ErrorResponces/InternalError'
 
-  /comments/{comment_id}:
+  /posts/{post_id}/comments/{comment_id}:
     delete:
       tags:
         - Comments
@@ -337,6 +311,8 @@ paths:
           $ref: '#/components/ErrorResponces/Unauthorized'
         '404':
           $ref: '#/components/ErrorResponces/NotFound'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
 
   /subscriptions:
     get:
@@ -456,14 +432,15 @@ paths:
           description: Подписка удалена
         '401':
           $ref: '#/components/ErrorResponces/Unauthorized'
+        '403':
+          $ref: '#/components/ErrorResponces/Forbidden'
         '404':
           $ref: '#/components/ErrorResponces/NotFound'
         '500':
           $ref: '#/components/ErrorResponces/InternalError'
-        '403':
-          $ref: '#/components/ErrorResponces/Forbidden'
+        
 
-  /search/places:
+  /places:
     get:
       summary: Поиск по геолокации
       tags:
@@ -484,8 +461,10 @@ paths:
                 $ref: '#/components/schemas/PlacesList'
         '401':
           $ref: '#/components/ErrorResponces/Unauthorized'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'
 
-  /uploads/image:
+  /uploads/images:
     post:
       summary: Загрузка изображения
       tags:
@@ -519,39 +498,6 @@ paths:
 
 components:
   schemas:
-    CurrentUserProfile:
-      type: object
-      properties:
-        id:
-          $ref: "#/components/schemas/UserId"
-        username:
-          $ref: "#/components/schemas/UserName"
-        avatar_url:
-          type: string
-          format: uri
-          description: URL аватара пользователя
-          example: https://example.com/avatars/user123.jpg
-        bio:
-          type: string
-          description: Краткое описание пользователя
-          maxLength: 500
-          example: Люблю путешествовать и фотографировать красивые места
-        created_at:
-          $ref: "#/components/schemas/CreatedAt"
-        updated_at:
-          $ref: "#/components/schemas/UpdatedAt"
-        posts_count:
-          type: integer
-          description: Общее количество постов пользователя
-          example: 42
-        subscriptions_count:
-          type: integer
-          description: Количество подписок пользователя
-          example: 128
-        subscribers_count:
-          type: integer
-          description: Количество подписчиков пользователя
-          example: 567
     UserProfile:
       type: object
       properties:
@@ -587,7 +533,7 @@ components:
           example: 567
         subscription:
           type: boolean
-          description: Флаг подписки текущего пользователя на этого пользователя
+          description: Флаг подписки текущего пользователя на этого пользователя<br>Не возвращается, если запрашивается инфоррмация о текущем пользователе.
           example: true
     PostsList:
       type: object
