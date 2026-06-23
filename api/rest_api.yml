@@ -494,7 +494,9 @@ paths:
         '401':
           $ref: '#/components/ErrorResponces/Unauthorized'
         '400':
-          $ref: '#/components/ErrorResponces/ValidationError'   
+          $ref: '#/components/ErrorResponces/ValidationError'
+        '500':
+          $ref: '#/components/ErrorResponces/InternalError'   
 
 components:
   schemas:
