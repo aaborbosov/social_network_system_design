@@ -1,0 +1,61 @@
+Table users {
+  id              BIGINT pk
+  username        VARCHAR(50) [unique, not null]
+  email           VARCHAR(255) [unique, not null]
+  password_hash   VARCHAR(255) [not null]
+  avatar_url      VARCHAR(255)
+  bio             VARCHAR(500)
+  posts_count     INT [DEFAULT: 0]
+  subscriptions_count INT [DEFAULT: 0]
+  subscribers_count  INT [DEFAULT: 0]
+  created_at      TIMESTAMP [not null, DEFAULT: `now()`]
+  updated_at      TIMESTAMP [not null, DEFAULT: `now()`]
+}
+
+Table places {
+  id              BIGINT pk
+  name            VARCHAR(100) [not null]       // Название населённого пункта
+  location        GEOGRAPHY(POINT, 4326) [not null]  // PostGIS: координаты центра
+  created_at      TIMESTAMP [not null, DEFAULT: `now()`]
+
+  Indexes {
+    (location) [type: gist] // Посты по локации для поиска ближайших
+    (name) [type: gin] // Полнотекстовый поиск 
+  }
+}
+
+Table posts {
+  id              BIGINT pk
+  user_id         BIGINT [not null]
+  text            VARCHAR(200)
+  image_url       VARCHAR(255)
+  place_id        BIGINT                        // Ссылка на places (определяется системой)
+  place_name      VARCHAR(100)                  // Денормализация - без джойна по местам
+  comments_count      INT [DEFAULT: 0]
+  is_deleted          BOOLEAN [DEFAULT: false]  // Мягкое удаление
+  created_at          TIMESTAMP [not null, DEFAULT: `now()`]
+  updated_at          TIMESTAMP [not null, DEFAULT: `now()`]
+
+  Indexes {
+    (user_id, created_at)         // Посты пользователя
+    (place_id, created_at)        // Поиск по геолокации
+    (created_at)      // Лента "Интересное"
+  }
+}
+
+Table subscriptions {
+  follower_id     BIGINT [not null]     // Кто подписывается
+  followed_id     BIGINT [not null]    // На кого подписываются
+  created_at      TIMESTAMP [not null, DEFAULT: `now()`]
+
+  Indexes {
+    (follower_id, followed_id) [pk]   // Уникальная пара
+    (follower_id, created_at)      // Подписки пользователя
+    (followed_id, created_at)      // Подписчики пользователя
+  }
+}
+
+Ref: posts.user_id > users.id
+Ref: posts.place_id > places.id
+Ref: subscriptions.follower_id > users.id
+Ref: subscriptions.followed_id > users.id

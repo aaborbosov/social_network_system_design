@@ -1,0 +1,26 @@
+Table reactions {
+  post_id       BIGINT            [not null]    // ID поста (из PostgreSQL)
+  user_id       BIGINT            [not null]    // ID пользователя
+  type_id       INT               [not null]    // Тип реакции: 1-Лайк, 2-Дизлайк, 3-Сердечко, 4-Огонь, 5-Плачу, 6-Клоун
+  created_at    TIMESTAMP         [not null]    // Когда поставлена
+  updated_at    TIMESTAMP         [not null]    // Когда изменена
+
+  Indexes {
+    (post_id, user_id) [unique]    // Уникальный: одна реакция на пользователя на пост
+  }
+}
+
+Table comments {
+  _id               ObjectId      [pk]          // Автоматический ID документа
+  post_id           BIGINT        [not null]    // ID поста (из PostgreSQL)
+  user_id           BIGINT        [not null]    // ID автора комментария
+  user_name         VARCHAR(50)   [not null]    // Денормализация: никнейм автора
+  text              VARCHAR(500)  [not null]    // Текст комментария (до 500 символов)
+  reply_to_user_id  BIGINT                      // ID пользователя, на чей комментарий отвечают (NULL если не ответ)
+  reply_to_user_name VARCHAR(50)                // Никнейм пользователя, на чей комментарий отвечают
+  created_at        TIMESTAMP     [not null]    // Дата создания
+
+  Indexes {
+    (post_id, created_at)     // Курсорная пагинация по посту
+  }
+}
